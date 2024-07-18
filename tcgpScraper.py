@@ -59,7 +59,7 @@ class SimpleGUI:
         START_URL = "https://www.tcgplayer.com/"
 
         with sync_playwright() as p:
-            browser = p.firefox.launch(headless=False)
+            browser = p.firefox.launch(headless=True)
             page = browser.new_page()
 
             # Load the TCGPlayer homepage
@@ -82,16 +82,41 @@ class SimpleGUI:
                 page.click('#showFilters')
                 
                 # Apply necessary filters by clicking on labels
+                page.wait_for_selector('label[for="verified-seller-filter"]')
                 page.click('label[for="verified-seller-filter"]')
-                page.click(f'label[for="{condition_filter}"]')
+                
+                # Debugging: Check if the condition filter is present
+                print(f"Checking condition filter: {condition_filter}")
+                condition_element = page.query_selector(f'label[for="{condition_filter}"]')
+                if condition_element:
+                    print("Condition filter found, executing JavaScript to click...")
+                    page.evaluate(f'document.querySelector("label[for=\'{condition_filter}\']").click()')
+                    page.wait_for_timeout(500)  # Wait for 0.5 seconds to ensure click registers
+                else:
+                    print("Condition filter not found.")
+                
+                page.wait_for_selector('label[for="ListingType-ListingsWithoutPhotos-filter"]')
                 page.click('label[for="ListingType-ListingsWithoutPhotos-filter"]')
                 
                 # Click the save button to apply filters
+                page.wait_for_selector('.filter-drawer-footer__button-save')
                 page.click('.filter-drawer-footer__button-save')
             else:
                 # Apply necessary filters directly
+                page.wait_for_selector('label[for="verified-seller-filter"]')
                 page.click('label[for="verified-seller-filter"]')
-                page.click(f'label[for="{condition_filter}"]')
+                
+                # Debugging: Check if the condition filter is present
+                print(f"Checking condition filter: {condition_filter}")
+                condition_element = page.query_selector(f'label[for="{condition_filter}"]')
+                if condition_element:
+                    print("Condition filter found, executing JavaScript to click...")
+                    page.evaluate(f'document.querySelector("label[for=\'{condition_filter}\']").click()')
+                    page.wait_for_timeout(500)  # Wait for 0.5 seconds to ensure click registers
+                else:
+                    print("Condition filter not found.")
+                
+                page.wait_for_selector('label[for="ListingType-ListingsWithoutPhotos-filter"]')
                 page.click('label[for="ListingType-ListingsWithoutPhotos-filter"]')
             
             # Retrieve the price and shipping cost
@@ -111,7 +136,7 @@ class SimpleGUI:
                 result = f"Price: ${price:.2f}\nShipping: ${shipping:.2f}\nTotal Price: ${total_price:.2f}"
             else:
                 result = "Price or shipping information not found."
-            page.wait_for_timeout(20000)  # 20 seconds
+
             browser.close()
         
         return result
