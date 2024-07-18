@@ -4,7 +4,7 @@ from math import floor
 from playwright.sync_api import sync_playwright
 
 # Read the CSV file
-csv_file = '/Users/jonathanduran-ortiz/Developer/Scripts/tcgplayerBot/cards.csv'
+csv_file = '/path/to/your/cards.csv'
 df = pd.read_csv(csv_file, delimiter=',')
 
 # Function to build the URL based on the CSV row data
