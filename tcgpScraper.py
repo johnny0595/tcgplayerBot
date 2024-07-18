@@ -1,92 +1,122 @@
+import tkinter as tk
 from playwright.sync_api import sync_playwright
-import csv
 import re
 
-SEARCH_TERM = "Frogmite - Duel Decks: Elspeth vs. Tezzeret"
-START_URL = "https://www.tcgplayer.com/"
-CSV_FILE = "cards_data.csv"
+class SimpleGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("TCGPlayer Price Scraper")
 
-def save_to_csv(data, filename):
-    with open(filename, mode='w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(["Name", "Set", "Lowest Price", "Market Price"])
-        for row in data:
-            writer.writerow(row)
+        self.label = tk.Label(root, text="Enter search term:")
+        self.label.pack(pady=5)
 
-def scrape_tcgplayer():
-    with sync_playwright() as p:
-        browser = p.firefox.launch(headless=False)
-        page = browser.new_page()
-        
-        # 1. Load the TCGPlayer homepage
-        print("Navigating to TCGPlayer homepage...")
-        page.goto(START_URL)
-        
-        # 2. Enter the search term in the search box
-        print(f"Entering search term: {SEARCH_TERM}...")
-        page.wait_for_selector('#autocomplete-input')
-        search_box = page.query_selector('#autocomplete-input')
-        search_box.fill(SEARCH_TERM)
-        page.keyboard.press("Enter")
-        
-        # 3. Click on the first search result
-        print("Waiting for search results...")
-        page.wait_for_selector('[data-testid="product-card__image--0"]')
-        print("Clicking on the first search result...")
-        page.click('[data-testid="product-card__image--0"]')
-        
-        # 4. Check for the "Show Filters" button
-        print("Waiting for card page to load...")
-        page.wait_for_timeout(1000)  # 1 second
-        
-        if page.query_selector('#showFilters'):
-            print("Clicking to show filters...")
-            page.click('#showFilters')
-            
-            # Apply necessary filters by clicking on labels
-            print("Applying filters...")
-            page.click('label[for="verified-seller-filter"]')
-            page.click('label[for="Condition-LightlyPlayed-filter"]')
-            page.click('label[for="ListingType-ListingsWithoutPhotos-filter"]')
-            
-            # Click the save button to apply filters
-            print("Saving filters...")
-            page.click('.filter-drawer-footer__button-save')
+        self.entry = tk.Entry(root, width=50)
+        self.entry.pack(pady=5)
+
+        self.condition_label = tk.Label(root, text="Select condition:")
+        self.condition_label.pack(pady=5)
+
+        self.condition_var = tk.StringVar(root)
+        self.condition_var.set("Lightly Played")  # default value
+
+        self.conditions = {
+            "Lightly Played": "Condition-LightlyPlayed-filter",
+            "Near Mint": "Condition-NearMint-filter",
+            "Moderately Played": "Condition-ModeratelyPlayed-filter",
+            "Damaged": "Condition-Damaged-filter",
+            "Heavily Played": "Condition-HeavilyPlayed-filter"
+        }
+
+        self.condition_dropdown = tk.OptionMenu(root, self.condition_var, *self.conditions.keys())
+        self.condition_dropdown.pack(pady=5)
+
+        self.submit_button = tk.Button(root, text="Submit", command=self.store_data)
+        self.submit_button.pack(pady=5)
+
+        self.result_label = tk.Label(root, text="Stored data will appear here:")
+        self.result_label.pack(pady=5)
+
+        self.result_box = tk.Text(root, height=10, width=50)
+        self.result_box.pack(pady=5)
+
+        self.stored_data = ""
+
+    def store_data(self):
+        self.stored_data = self.entry.get()
+        self.selected_condition = self.condition_var.get()
+        self.result_label.config(text=f"Stored data: {self.stored_data} (Condition: {self.selected_condition})")
+        self.execute_event()
+
+    def execute_event(self):
+        if self.stored_data:
+            condition_filter = self.conditions[self.selected_condition]
+            result = self.scrape_tcgplayer(self.stored_data, condition_filter)
+            self.result_box.insert(tk.END, f"Results for {self.stored_data} (Condition: {self.selected_condition}):\n{result}\n\n")
         else:
-            # Apply necessary filters directly
-            print("Applying filters directly...")
-            page.click('label[for="verified-seller-filter"]')
-            page.click('label[for="Condition-LightlyPlayed-filter"]')
-            page.click('label[for="ListingType-ListingsWithoutPhotos-filter"]')
-        
-        # 5. Retrieve the price and shipping cost
-        print("Waiting for filtered results...")
-        page.wait_for_selector('section.spotlight__listing')
-        
-        print("Extracting price and shipping cost...")
-        price_element = page.query_selector('section.spotlight__listing .spotlight__price')
-        shipping_element = page.query_selector('section.spotlight__listing .spotlight__shipping')
+            self.result_box.insert(tk.END, "No data to execute event.\n")
 
-        if price_element:
-            price = float(price_element.inner_text().replace('$', ''))
+    def scrape_tcgplayer(self, search_term, condition_filter):
+        START_URL = "https://www.tcgplayer.com/"
 
-            if "shipping:" in shipping_element.inner_text():
-                shipping = 0.0
-            else:
-                shipping_text = shipping_element.inner_text().strip()
-                shipping = float(re.sub(r'[^\d.]', '', shipping_text)) if shipping_text else 0.0
+        with sync_playwright() as p:
+            browser = p.firefox.launch(headless=False)
+            page = browser.new_page()
+
+            # Load the TCGPlayer homepage
+            page.goto(START_URL)
+            
+            # Enter the search term in the search box
+            page.wait_for_selector('#autocomplete-input')
+            search_box = page.query_selector('#autocomplete-input')
+            search_box.fill(search_term)
+            page.keyboard.press("Enter")
+            
+            # Click on the first search result
+            page.wait_for_selector('[data-testid="product-card__image--0"]')
+            page.click('[data-testid="product-card__image--0"]')
+            
+            # Wait for the card page to load
+            page.wait_for_timeout(1000)  # 1 second
+            
+            if page.query_selector('#showFilters'):
+                page.click('#showFilters')
                 
-            total_price = price + shipping
+                # Apply necessary filters by clicking on labels
+                page.click('label[for="verified-seller-filter"]')
+                page.click(f'label[for="{condition_filter}"]')
+                page.click('label[for="ListingType-ListingsWithoutPhotos-filter"]')
+                
+                # Click the save button to apply filters
+                page.click('.filter-drawer-footer__button-save')
+            else:
+                # Apply necessary filters directly
+                page.click('label[for="verified-seller-filter"]')
+                page.click(f'label[for="{condition_filter}"]')
+                page.click('label[for="ListingType-ListingsWithoutPhotos-filter"]')
             
-            print(f"Price: ${price:.2f}")
-            print(f"Shipping: ${shipping:.2f}")
-            print(f"Total Price: ${total_price:.2f}")
-        else:
-            print("Price or shipping information not found.")
+            # Retrieve the price and shipping cost
+            page.wait_for_selector('section.spotlight__listing')
+            price_element = page.query_selector('section.spotlight__listing .spotlight__price')
+            shipping_element = page.query_selector('section.spotlight__listing .spotlight__shipping')
 
-        page.wait_for_timeout(20000)  # 20 seconds
-        browser.close()
+            if price_element:
+                price = float(price_element.inner_text().replace('$', ''))
+                if "shipping:" in shipping_element.inner_text():
+                    shipping = 0.0
+                else:
+                    shipping_text = shipping_element.inner_text().strip()
+                    shipping = float(re.sub(r'[^\d.]', '', shipping_text)) if shipping_text else 0.0
+                    
+                total_price = price + shipping
+                result = f"Price: ${price:.2f}\nShipping: ${shipping:.2f}\nTotal Price: ${total_price:.2f}"
+            else:
+                result = "Price or shipping information not found."
+            page.wait_for_timeout(20000)  # 20 seconds
+            browser.close()
+        
+        return result
 
 if __name__ == "__main__":
-    scrape_tcgplayer()
-    print("Scraping completed.")
+    root = tk.Tk()
+    app = SimpleGUI(root)
+    root.mainloop()

@@ -1,0 +1,46 @@
+import tkinter as tk
+
+class SimpleGUI:
+    def init(self, root):
+        self.root = root
+        self.root.title("Simple GUI")
+
+        self.label = tk.Label(root, text="Enter text:")
+        self.label.pack(pady=5)
+
+        self.entry = tk.Entry(root, width=50)
+        self.entry.pack(pady=5)
+
+        self.submitbutton = tk.Button(root, text="Submit", command=self.storedata)
+        self.submitbutton.pack(pady=5)
+
+        self.executebutton = tk.Button(root, text="Execute Event", command=self.execute_event)
+        self.execute_button.pack(pady=5)
+
+        self.result_label = tk.Label(root, text="Stored data will appear here:")
+        self.result_label.pack(pady=5)
+
+        self.result_box = tk.Text(root, height=10, width=50)
+        self.result_box.pack(pady=5)
+
+        self.stored_data = ""
+
+    def store_data(self):
+        self.stored_data = self.entry.get()
+        self.result_label.config(text=f"Stored data: {self.stored_data}")
+
+    def execute_event(self):
+        if self.stored_data:
+            result = self.example_event(self.stored_data)
+            self.result_box.insert(tk.END, f"Event executed with result: {result}\n")
+        else:
+            self.result_box.insert(tk.END, "No data to execute event.\n")
+
+    def example_event(self, data):
+        # Example event logic: reverse the input data
+        return data[::-1]
+
+if __name__ == "__main":
+    root = tk.Tk()
+    app = SimpleGUI(root)
+    root.mainloop()
