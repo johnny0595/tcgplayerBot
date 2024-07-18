@@ -116,7 +116,7 @@ The input CSV file should be formatted as follows:
 csv_file = '/path/to/your/cards.csv'
 
 ```
-
+An example cards.csv file is included. I recommend using that.
   
 
 3. Run the script:
@@ -148,6 +148,8 @@ python tcgplayer_scraper.py
 - The script prints the URL and scraped information for each card, allowing you to verify the applied filters.
 
 - Ensure there are no typos in the column names or data entries
+
+- On my computer it processes each card/product in around 3 seconds.
 
 - Verify that "Listing Type", "Condition", and "Printing" match the options exactly as listed above
 
