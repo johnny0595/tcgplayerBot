@@ -1,7 +1,9 @@
 from playwright.sync_api import sync_playwright
 import csv
+import re
 
-URL = "https://www.tcgplayer.com/search/magic/universes-beyond-assassin-s-creed?view=grid&productLineName=magic&setName=universes-beyond-assassin-s-creed"
+SEARCH_TERM = "Frogmite - Duel Decks: Elspeth vs. Tezzeret"
+START_URL = "https://www.tcgplayer.com/"
 CSV_FILE = "cards_data.csv"
 
 def save_to_csv(data, filename):
@@ -13,43 +15,78 @@ def save_to_csv(data, filename):
 
 def scrape_tcgplayer():
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
+        browser = p.firefox.launch(headless=False)
         page = browser.new_page()
-        page.goto(URL)
         
-        card_data = []
-
-        while True:
-            # Wait for the card elements to load
-            page.wait_for_selector('div.search-result__content')
+        # 1. Load the TCGPlayer homepage
+        print("Navigating to TCGPlayer homepage...")
+        page.goto(START_URL)
+        
+        # 2. Enter the search term in the search box
+        print(f"Entering search term: {SEARCH_TERM}...")
+        page.wait_for_selector('#autocomplete-input')
+        search_box = page.query_selector('#autocomplete-input')
+        search_box.fill(SEARCH_TERM)
+        page.keyboard.press("Enter")
+        
+        # 3. Click on the first search result
+        print("Waiting for search results...")
+        page.wait_for_selector('[data-testid="product-card__image--0"]')
+        print("Clicking on the first search result...")
+        page.click('[data-testid="product-card__image--0"]')
+        
+        # 4. Check for the "Show Filters" button
+        print("Waiting for card page to load...")
+        page.wait_for_timeout(1000)  # 1 second
+        
+        if page.query_selector('#showFilters'):
+            print("Clicking to show filters...")
+            page.click('#showFilters')
             
-            cards = page.query_selector_all('div.search-result__content')
-
-            for card in cards:
-                name_element = card.query_selector('span.product-card__title')
-                set_element = card.query_selector('div.product-card__set-name__variant')
-                lowest_price_element = card.query_selector('span.inventory__price-with-shipping')
-                market_price_element = card.query_selector('span.product-card__market-price--value')
-
-                if name_element and set_element and lowest_price_element and market_price_element:
-                    name = name_element.inner_text()
-                    set_name = set_element.inner_text()
-                    lowest_price = lowest_price_element.inner_text().replace('$', '')
-                    market_price = market_price_element.inner_text().replace('$', '')
-                    
-                    card_data.append([name, set_name, lowest_price, market_price])
-
-            # Check if the "Next page" button is enabled
-            next_button = page.query_selector('a[aria-label="Next page"]')
-            if next_button and next_button.get_attribute('aria-disabled') == 'false':
-                next_button.click()
-                page.wait_for_timeout(3000)  # Wait for the next page to load
-            else:
-                break
+            # Apply necessary filters by clicking on labels
+            print("Applying filters...")
+            page.click('label[for="verified-seller-filter"]')
+            page.click('label[for="Condition-LightlyPlayed-filter"]')
+            page.click('label[for="ListingType-ListingsWithoutPhotos-filter"]')
+            
+            # Click the save button to apply filters
+            print("Saving filters...")
+            page.click('.filter-drawer-footer__button-save')
+        else:
+            # Apply necessary filters directly
+            print("Applying filters directly...")
+            page.click('label[for="verified-seller-filter"]')
+            page.click('label[for="Condition-LightlyPlayed-filter"]')
+            page.click('label[for="ListingType-ListingsWithoutPhotos-filter"]')
         
-        save_to_csv(card_data, CSV_FILE)
+        # 5. Retrieve the price and shipping cost
+        print("Waiting for filtered results...")
+        page.wait_for_selector('section.spotlight__listing')
+        
+        print("Extracting price and shipping cost...")
+        price_element = page.query_selector('section.spotlight__listing .spotlight__price')
+        shipping_element = page.query_selector('section.spotlight__listing .spotlight__shipping')
+
+        if price_element:
+            price = float(price_element.inner_text().replace('$', ''))
+
+            if "shipping:" in shipping_element.inner_text():
+                shipping = 0.0
+            else:
+                shipping_text = shipping_element.inner_text().strip()
+                shipping = float(re.sub(r'[^\d.]', '', shipping_text)) if shipping_text else 0.0
+                
+            total_price = price + shipping
+            
+            print(f"Price: ${price:.2f}")
+            print(f"Shipping: ${shipping:.2f}")
+            print(f"Total Price: ${total_price:.2f}")
+        else:
+            print("Price or shipping information not found.")
+
+        page.wait_for_timeout(20000)  # 20 seconds
         browser.close()
 
 if __name__ == "__main__":
     scrape_tcgplayer()
-    print("Scraping completed. Data saved to", CSV_FILE)
+    print("Scraping completed.")
