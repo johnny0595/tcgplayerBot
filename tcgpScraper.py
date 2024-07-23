@@ -70,7 +70,7 @@ with sync_playwright() as p:
     page = browser.new_page()
 
     for index, row in df.iterrows():
-        if len(str(row['Product ID'])) < 5 or len(str(row['Product ID'])) > 6:
+        if len(str(row['Product ID'])) < 2 or len(str(row['Product ID'])) > 6:
             print(f"Skipping row {index} due to invalid Product ID: {row['Product ID']}")
             df.at[index, 'Price'] = ""
             df.at[index, 'Shipping'] = ""
@@ -82,20 +82,25 @@ with sync_playwright() as p:
         print(f"Navigating to: {url}")
 
         # Wait for the card page to load
-        page.wait_for_selector('body')
+        # page.wait_for_selector('body')
+        page.wait_for_load_state('networkidle')
 
         # Check if the verified seller filter is already applied
-        verified_seller_checked = page.is_checked('label[for="verified-seller-filter"] input[type="checkbox"]')
-        if not verified_seller_checked:
-            if page.query_selector('#showFilters'):
-                page.click('#showFilters')
+        if page.query_selector('#showFilters'):
+            page.click('#showFilters')
+            verified_seller_checked = page.is_checked('label[for="verified-seller-filter"] input[type="checkbox"]')
+            if not verified_seller_checked:
                 page.wait_for_selector('label[for="verified-seller-filter"]')
                 page.click('label[for="verified-seller-filter"]')
                 page.wait_for_selector('.filter-drawer-footer__button-save')
                 page.click('.filter-drawer-footer__button-save')
-            else:
+                print("Applied verified seller filter")
+        else:
+            verified_seller_checked = page.is_checked('label[for="verified-seller-filter"] input[type="checkbox"]')
+            if not verified_seller_checked:
                 if page.query_selector('label[for="verified-seller-filter"]'):
                     page.click('label[for="verified-seller-filter"]')
+                    print("Applied verified seller filter")
 
         page.wait_for_timeout(1000)
 

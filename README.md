@@ -75,7 +75,7 @@ The input CSV file should be formatted as follows:
 ### Column Details:
 
 1. **Product ID**: 
-   - Must be a 5 or 6-digit number
+   - Must be a 2 or 6-digit number
    - Example: 123456
 
 2. **Listing Type**: 
@@ -141,7 +141,7 @@ python tcgplayer_scraper.py
 
 - It automatically handles the "Verified Seller" filter.
 
-- If a product ID is not 5-6 digits, the script will skip that card and leave the price fields blank.
+- If a product ID is not 2-6 digits, the script will skip that card and leave the price fields blank.
 
 - If no listings are available for a card, the script will fill in "N/A" for the price fields.
 
@@ -149,7 +149,7 @@ python tcgplayer_scraper.py
 
 - Ensure there are no typos in the column names or data entries
 
-- On my computer it processes each card/product in around 3 seconds.
+- On my computer it processes each card/product in around 4 seconds.
 
 - Verify that "Listing Type", "Condition", and "Printing" match the options exactly as listed above
 
