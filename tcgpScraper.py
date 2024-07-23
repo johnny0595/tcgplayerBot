@@ -7,6 +7,11 @@ from playwright.sync_api import sync_playwright
 csv_file = '/path/to/your/cards.csv'
 df = pd.read_csv(csv_file, delimiter=',')
 
+# Ensure the columns are of type object to avoid dtype issues
+df['Price'] = df['Price'].astype(object)
+df['Shipping'] = df['Shipping'].astype(object)
+df['Total'] = df['Total'].astype(object)
+
 # Function to build the URL based on the CSV row data
 def build_url(row):
     base_url = f"https://www.tcgplayer.com/product/{row['Product ID']}?Language=English&page=1"
@@ -56,8 +61,6 @@ def extract_price_and_shipping(page, row):
             shipping_text = re.sub(r'[^\d.]', '', shipping_text)
             shipping = float(f"{float(shipping_text):.2f}") if shipping_text else 0.0
         
-        # Round down the shipping cost before adding
-
         total_price = price + shipping
 
         return f"{price:.2f}", f"{shipping:.2f}", f"{total_price:.2f}"
@@ -82,7 +85,6 @@ with sync_playwright() as p:
         print(f"Navigating to: {url}")
 
         # Wait for the card page to load
-        # page.wait_for_selector('body')
         page.wait_for_load_state('networkidle')
 
         # Check if the verified seller filter is already applied
