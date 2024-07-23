@@ -149,7 +149,7 @@ python tcgplayer_scraper.py
 
 - Ensure there are no typos in the column names or data entries
 
-- On my computer it processes each card/product in around 4 seconds.
+- On my computer it processes each card/product in around 3-4 seconds.
 
 - Verify that "Listing Type", "Condition", and "Printing" match the options exactly as listed above
 

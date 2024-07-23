@@ -102,7 +102,7 @@ with sync_playwright() as p:
                     page.click('label[for="verified-seller-filter"]')
                     print("Applied verified seller filter")
 
-        page.wait_for_timeout(1000)
+        page.wait_for_timeout(500)
 
         price, shipping, total = extract_price_and_shipping(page, row)
         
